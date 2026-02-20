@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Word Count MapReduce</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 1rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .container {
+      max-width: 600px;
+      width: 100%;
+    }
+    label {
+      display: block;
+      margin-top: 1rem;
+    }
+    input[type="number"], input[type="file"] {
+      width: 100%;
+      padding: 0.5rem;
+      box-sizing: border-box;
+      margin-top: 0.5rem;
+    }
+    button {
+      margin-top: 1.5rem;
+      padding: 0.75rem;
+      width: 100%;
+      font-size: 1rem;
+    }
+    .results {
+      margin-top: 2rem;
+    }
+    pre {
+      padding: 1rem;
+      overflow-x: auto;
+    }
+    @media (max-width: 480px) {
+      body {
+        padding: 0.5rem;
+      }
+      button {
+        padding: 1rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Word Count MapReduce (Multithreaded)</h1>
+    <form id="wc-form">
+      <label for="threads">Number of Threads (N ≥ 1):</label>
+      <input type="number" id="threads" name="threads" min="1" value="4" required>
+
+      <label for="file">Select Data File:</label>
+      <input type="file" id="file" name="file" accept=".txt" required>
+
+      <button type="submit">Perform MapReduce</button>
+    </form>
+
+    <div class="results" id="results" hidden>
+      <h2>Results</h2>
+      <p><strong>Single-threaded time:</strong> <span id="time-single">--</span> seconds</p>
+      <p><strong>Multithreaded time:</strong> <span id="time-multi">--</span> seconds</p>
+      <h3>Word Counts</h3>
+      <pre id="counts">--</pre>
+    </div>
+  </div>
+
+  <script>
+    document.getElementById('wc-form').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const form = e.target;
+      const threads = form.elements['threads'].value;
+      const fileInput = form.elements['file'];
+      if (!fileInput.files.length) return alert('Please select a file.');
+
+      const data = new FormData();
+      data.append('threads', threads);
+      data.append('file', fileInput.files[0]);
+
+      const resultsDiv = document.getElementById('results');
+      resultsDiv.hidden = true;
+
+      try {
+        const resp = await fetch('/api/wordcount', {
+          method: 'POST',
+          body: data
+        });
+        if (!resp.ok) throw new Error(await resp.text());
+        const json = await resp.json();
+        document.getElementById('time-single').textContent = json.single_time.toFixed(4);
+        document.getElementById('time-multi').textContent = json.multi_time.toFixed(4);
+        document.getElementById('counts').textContent = JSON.stringify(json.counts, null, 2);
+        resultsDiv.hidden = false;
+      } catch (err) {
+        alert('Error: ' + err.message);
+      }
+    });
+  </script>
+</body>
+</html>
